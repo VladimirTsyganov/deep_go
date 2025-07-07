@@ -15,17 +15,10 @@ func ToLittleEndian[T uint16 | uint32 | uint64](number T) T {
 
 	resultPtr := unsafe.Pointer(new(T))
 
-	offset := 0
-
-	for {
-		if offset >= int(size) {
-			break
-		}
-
+	for offset := 0; offset < int(size); offset++ {
 		readPtr := unsafe.Add(tail, -offset-1)
 		writePrt := (*uint8)(unsafe.Add(resultPtr, offset))
 		*writePrt = *(*uint8)(readPtr)
-		offset += 1
 	}
 
 	return *(*T)(resultPtr)

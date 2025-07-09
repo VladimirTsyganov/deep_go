@@ -3,7 +3,6 @@ package main
 import (
 	"reflect"
 	"testing"
-	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -12,44 +11,43 @@ import (
 
 type CircularQueue[T int | int16 | int32 | int64] struct {
 	values []T
-	head   unsafe.Pointer
-	tail   unsafe.Pointer
+	head   *int
+	tail   int
 }
 
 func NewCircularQueue[T int | int16 | int32 | int64](size int) CircularQueue[T] {
-	s := make([]T, size)
 	return CircularQueue[T]{
-		values: s,
-		tail:   unsafe.Pointer(&s[0]),
+		values: make([]T, size),
 	}
 }
 
 func (q *CircularQueue[T]) Push(value T) bool {
-	if q.head != nil && q.head == q.tail {
+	if q.Full() {
 		return false
 	}
 
-	*(*T)(q.tail) = value
+	q.values[q.tail] = value
 
 	if q.head == nil {
-		q.head = q.tail
+		q.head = new(int)
+		*q.head = q.tail
 	}
 
-	q.tail = q.nextPtr(q.tail)
+	q.tail = q.nextIdx(q.tail)
 	return true
 }
 
 func (q *CircularQueue[T]) Pop() bool {
-	if q.head == nil {
+	if q.Empty() {
 		return false
 	}
 
-	nextHead := q.nextPtr(q.head)
+	nextHead := q.nextIdx(*q.head)
 
 	if nextHead == q.tail {
 		q.head = nil
 	} else {
-		q.head = nextHead
+		*q.head = nextHead
 	}
 
 	return true
@@ -60,7 +58,7 @@ func (q *CircularQueue[T]) Front() T {
 		return -1
 	}
 
-	return *(*T)(q.head)
+	return q.values[*q.head]
 }
 
 func (q *CircularQueue[T]) Back() T {
@@ -68,7 +66,9 @@ func (q *CircularQueue[T]) Back() T {
 		return -1
 	}
 
-	return *(*T)(q.prevPtr(q.tail))
+	backIdx := q.prevIdx(q.tail)
+
+	return q.values[backIdx]
 }
 
 func (q *CircularQueue[T]) Empty() bool {
@@ -76,23 +76,27 @@ func (q *CircularQueue[T]) Empty() bool {
 }
 
 func (q *CircularQueue[T]) Full() bool {
-	return !q.Empty() && q.head == q.tail
+	return !q.Empty() && *q.head == q.tail
 }
 
-func (q *CircularQueue[T]) nextPtr(ptr unsafe.Pointer) unsafe.Pointer {
-	if &q.values[len(q.values)-1] == (*T)(ptr) {
-		return unsafe.Pointer(&q.values[0])
+func (q *CircularQueue[T]) nextIdx(idx int) int {
+	idx += 1
+
+	if idx > len(q.values)-1 {
+		return 0
 	}
 
-	return unsafe.Add(ptr, unsafe.Sizeof(q.values[0]))
+	return idx
 }
 
-func (q *CircularQueue[T]) prevPtr(ptr unsafe.Pointer) unsafe.Pointer {
-	if &q.values[0] == (*T)(ptr) {
-		return unsafe.Pointer(&q.values[len(q.values)-1])
+func (q *CircularQueue[T]) prevIdx(idx int) int {
+	idx -= 1
+
+	if idx < 0 {
+		return len(q.values) - 1
 	}
 
-	return unsafe.Add(ptr, -unsafe.Sizeof(q.values[0]))
+	return idx
 }
 
 func TestCircularIntQueue(t *testing.T) {

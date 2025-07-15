@@ -10,9 +10,10 @@ import (
 // go test -v homework_test.go
 
 type CircularQueue[T int | int16 | int32 | int64] struct {
-	values []T
-	head   *int
-	tail   int
+	values      []T
+	headIdx     int
+	tailIdx     int
+	currentSize int
 }
 
 func NewCircularQueue[T int | int16 | int32 | int64](size int) CircularQueue[T] {
@@ -26,14 +27,10 @@ func (q *CircularQueue[T]) Push(value T) bool {
 		return false
 	}
 
-	q.values[q.tail] = value
+	q.values[q.tailIdx] = value
+	q.tailIdx = q.nextIdx(q.tailIdx)
+	q.currentSize += 1
 
-	if q.head == nil {
-		q.head = new(int)
-		*q.head = q.tail
-	}
-
-	q.tail = q.nextIdx(q.tail)
 	return true
 }
 
@@ -42,13 +39,8 @@ func (q *CircularQueue[T]) Pop() bool {
 		return false
 	}
 
-	nextHead := q.nextIdx(*q.head)
-
-	if nextHead == q.tail {
-		q.head = nil
-	} else {
-		*q.head = nextHead
-	}
+	q.headIdx = q.nextIdx(q.headIdx)
+	q.currentSize -= 1
 
 	return true
 }
@@ -58,7 +50,7 @@ func (q *CircularQueue[T]) Front() T {
 		return -1
 	}
 
-	return q.values[*q.head]
+	return q.values[q.headIdx]
 }
 
 func (q *CircularQueue[T]) Back() T {
@@ -66,17 +58,17 @@ func (q *CircularQueue[T]) Back() T {
 		return -1
 	}
 
-	backIdx := q.prevIdx(q.tail)
+	backIdx := q.prevIdx(q.tailIdx)
 
 	return q.values[backIdx]
 }
 
 func (q *CircularQueue[T]) Empty() bool {
-	return q.head == nil
+	return q.currentSize == 0
 }
 
 func (q *CircularQueue[T]) Full() bool {
-	return !q.Empty() && *q.head == q.tail
+	return q.currentSize == len(q.values)
 }
 
 func (q *CircularQueue[T]) nextIdx(idx int) int {

@@ -12,79 +12,88 @@ type Option func(*GamePerson)
 
 func WithName(name string) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		copy(person.name[:], []byte(name))
 	}
 }
 
 func WithCoordinates(x, y, z int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.xCoord = int32(x)
+		person.yCord = int32(y)
+		person.zCord = int32(z)
 	}
 }
 
 func WithGold(gold int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.gold = uint32(gold)
 	}
 }
 
 func WithMana(mana int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		mask := uint32(mana) << mpOffset
+		person.meta = person.meta | mask
 	}
 }
 
 func WithHealth(health int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		mask := uint32(health) << hpOffset
+		person.meta = person.meta | mask
 	}
 }
 
 func WithRespect(respect int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		mask := uint8(respect) << 4
+		person.respectAndLvl = person.respectAndLvl | mask
 	}
 }
 
 func WithStrength(strength int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		mask := uint8(strength) << 4
+		person.strengthAndXp = person.strengthAndXp | mask
 	}
 }
 
 func WithExperience(experience int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.strengthAndXp = person.strengthAndXp | uint8(experience)
 	}
 }
 
 func WithLevel(level int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.respectAndLvl = person.respectAndLvl | uint8(level)
 	}
 }
 
 func WithHouse() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		mask := uint32(1 << houseOffset)
+		person.meta = person.meta | mask
 	}
 }
 
 func WithGun() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		mask := uint32(1 << gunOffset)
+		person.meta = person.meta | mask
 	}
 }
 
 func WithFamily() func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		mask := uint32(1 << familyOffset)
+		person.meta = person.meta | mask
 	}
 }
 
 func WithType(personType int) func(*GamePerson) {
 	return func(person *GamePerson) {
-		// need to implement
+		person.meta = person.meta | uint32(personType)
 	}
 }
 
@@ -94,88 +103,112 @@ const (
 	WarriorGamePersonType
 )
 
+const (
+	mpOffset     = 22
+	hpOffset     = 12
+	houseOffset  = 5
+	gunOffset    = 4
+	familyOffset = 3
+)
+
 type GamePerson struct {
-	// need to implement
+	strengthAndXp uint8
+	respectAndLvl uint8
+	name          [42]byte
+	meta          uint32
+	xCoord        int32
+	yCord         int32
+	zCord         int32
+	gold          uint32
 }
 
 func NewGamePerson(options ...Option) GamePerson {
-	// need to implement
-	return GamePerson{}
+	p := GamePerson{}
+
+	for _, o := range options {
+		o(&p)
+	}
+
+	return p
 }
 
 func (p *GamePerson) Name() string {
-	// need to implement
-	return ""
+	return string(p.name[:])
 }
 
 func (p *GamePerson) X() int {
-	// need to implement
-	return 0
+	return int(p.xCoord)
 }
 
 func (p *GamePerson) Y() int {
-	// need to implement
-	return 0
+	return int(p.yCord)
 }
 
 func (p *GamePerson) Z() int {
-	// need to implement
-	return 0
+	return int(p.zCord)
 }
 
 func (p *GamePerson) Gold() int {
-	// need to implement
-	return 0
+	return int(p.gold)
 }
 
 func (p *GamePerson) Mana() int {
-	// need to implement
-	return 0
+	mask := uint32(1023 << mpOffset)
+	val := p.meta & mask
+	return int(val >> mpOffset)
 }
 
 func (p *GamePerson) Health() int {
-	// need to implement
-	return 0
+	mask := uint32(1023 << hpOffset)
+	val := p.meta & mask
+	return int(val >> hpOffset)
 }
 
 func (p *GamePerson) Respect() int {
-	// need to implement
-	return 0
+	mask := uint8(0b1111 << 4)
+	val := p.respectAndLvl & mask
+	return int(val >> 4)
 }
 
 func (p *GamePerson) Strength() int {
-	// need to implement
-	return 0
+	mask := uint8(0b1111 << 4)
+	val := p.strengthAndXp & mask
+	return int(val >> 4)
 }
 
 func (p *GamePerson) Experience() int {
-	// need to implement
-	return 0
+	mask := uint8(0b00001111)
+	val := p.strengthAndXp & mask
+	return int(val)
 }
 
 func (p *GamePerson) Level() int {
-	// need to implement
-	return 0
+	mask := uint8(0b00001111)
+	val := p.respectAndLvl & mask
+	return int(val)
 }
 
 func (p *GamePerson) HasHouse() bool {
-	// need to implement
-	return false
+	mask := uint32(1 << houseOffset)
+	flag := (p.meta & mask) >> houseOffset
+	return flag == 1
 }
 
 func (p *GamePerson) HasGun() bool {
-	// need to implement
-	return false
+	mask := uint32(1 << gunOffset)
+	flag := (p.meta & mask) >> gunOffset
+	return flag == 1
 }
 
-func (p *GamePerson) HasFamilty() bool {
-	// need to implement
-	return false
+func (p *GamePerson) HasFamily() bool {
+	mask := uint32(1 << familyOffset)
+	flag := (p.meta & mask) >> familyOffset
+	return flag == 1
 }
 
 func (p *GamePerson) Type() int {
-	// need to implement
-	return 0
+	mask := uint32(3)
+	return int(p.meta & mask)
 }
 
 func TestGamePerson(t *testing.T) {
@@ -220,7 +253,7 @@ func TestGamePerson(t *testing.T) {
 	assert.Equal(t, experience, person.Experience())
 	assert.Equal(t, level, person.Level())
 	assert.True(t, person.HasHouse())
-	assert.True(t, person.HasFamilty())
+	assert.True(t, person.HasFamily())
 	assert.False(t, person.HasGun())
 	assert.Equal(t, personType, person.Type())
 }
